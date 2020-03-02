@@ -1,0 +1,36 @@
+{
+  "name": "@idrsolutions/idrcloudclient",
+  "version": "4.1.3",
+  "description": "IDRSolutions Node.js Cloud Client is the Node.js API for IDRSolutions' Microservice Examples.",
+  "main": "idrcloudclient.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/idrsolutions/idrsolutions-nodejs-client.git"
+  },
+  "keywords": [
+    "buildvu",
+    "idrsolutions",
+    "nodejs",
+    "client",
+    "microservice",
+    "pdf",
+    "html5",
+    "images",
+    "html",
+    "example",
+    "web",
+    "application",
+    "server",
+    "api",
+    "javascript"
+  ],
+  "author": "IDRsolutions (https://www.idrsolutions.com)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/idrsolutions/idrsolutions-nodejs-client/issues"
+  },
+  "homepage": "https://github.com/idrsolutions/idrsolutions-nodejs-client#readme",
+  "dependencies": {
+    "request": "^2.81.0"
+  }
+}
