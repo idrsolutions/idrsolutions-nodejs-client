@@ -15,7 +15,7 @@ more infomation on this can be found `here.`_
 Installation
 ------------
 
-Using PIP:
+Using NPM:
 ~~~~~~~~~~
 
 ::

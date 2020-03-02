@@ -17,7 +17,7 @@ find information at the following links for JPedal_ and BuildVu_.
 Installation
 ------------
 
-Using PIP:
+Using NPM:
 ~~~~~~~~~~
 
 ::
