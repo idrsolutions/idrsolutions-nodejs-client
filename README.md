@@ -31,9 +31,6 @@ Full usage for connecting to [BuildVu can be found here](README-BUILDVU.md).
 
 Full usage for connecting to [JPedal can be found here](README-JPEDAL.md).
 
-The parameters object should contain the parameters that are sent to the API
-See the [API](https://github.com/idrsolutions/jpedal-microservice-example/blob/master/API.md) for more details.
-
 -----
 
 # Who do I talk to? #
