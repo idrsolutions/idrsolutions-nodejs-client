@@ -31,7 +31,7 @@ function successListener(e) {
    console.log("Converted " + e.downloadUrl);
 }
 
-var endpoint = "http://localhost:8080/buildvu-microservice/" + idrcloudclient.JPEDAL;
+var endpoint = "http://localhost:8080/jpedal-microservice/" + idrcloudclient.JPEDAL;
 
 idrcloudclient.convert({
     endpoint: endpoint,

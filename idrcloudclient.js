@@ -49,6 +49,11 @@ var fs = require('fs');
                                 if (success) {
                                     success(data);
                                 }
+                            } else if (data.state === "error") {
+                                clearInterval(poll);
+                                if (failure) {
+                                    failure(new Error(JSON.stringify(data)));    
+                                }
                             } else {
                                 if (progress) {
                                     progress(data);
