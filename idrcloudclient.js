@@ -85,6 +85,7 @@ var fs = require('fs');
             DOWNLOAD: 'download',
             JPEDAL: 'jpedal',
             BUILDVU: 'buildvu',
+            FORMVU: 'formvu',
             bufferToFile: function (file, filename) {
                 var returnFile;
                 if (file instanceof Buffer) {
