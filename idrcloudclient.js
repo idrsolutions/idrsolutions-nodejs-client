@@ -130,7 +130,7 @@ var fs = require('fs');
                             throw Error('Please use the bufferToFile method on your file parameter');
                         } else if (typeof formData.file === 'string' || formData.file instanceof String) {
                             formData.file = fs.createReadStream(formData.file);
-                        } else if (!formData.file instanceof fs.ReadStream && !formData.file['value'] && !formData.file['options']
+                        } else if (!(formData.file instanceof fs.ReadStream) && !formData.file['value'] && !formData.file['options']
                                    && !formData.file.options['filename'] && !formData.file.options['contentType']) {
                             throw Error("Did not recognise type of 'file' parameter");
                         }
