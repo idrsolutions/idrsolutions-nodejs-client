@@ -21,7 +21,7 @@ var fs = require('fs');
     var Converter = (function () {
 
         var doPoll = function (uuid, endpoint) {
-            var req, retries = 0;
+            var req, retries = 0, time = 0;
 
             var poll = setInterval(function () {
                 if (!req) {
@@ -39,6 +39,15 @@ var fs = require('fs');
                             method: 'GET',
                             uri: endpoint + "?uuid=" + uuid,
                         };
+                    }
+
+                    time += 500;
+                    if (conversionTimeout && time > conversionTimeout) {
+                        if (failure) {
+                            failure("Conversion timed out")
+                        }
+                        clearInterval(poll);
+                        return;
                     }
 
                     req = request(options, function (error, response, body) {
@@ -78,7 +87,7 @@ var fs = require('fs');
             }, 500);
         };
 
-        var progress, success, failure, username, password;
+        var progress, success, failure, username, password, requestTimeout, conversionTimeout;
 
         return {
             UPLOAD: 'upload',
@@ -116,6 +125,9 @@ var fs = require('fs');
                     progress = params.progress;
                 }
 
+                requestTimeout = params.requestTimeout;
+                convertTimeout = params.conversionTimeout;
+
                 var formData = params.parameters || {};
 
                 if (typeof formData.input === 'undefined' || formData.input == null) {
@@ -143,7 +155,11 @@ var fs = require('fs');
                         break;
                 }
 
-                var options;
+                var options = {
+                    method: 'POST',
+                    uri: params.endpoint,
+                    formData: formData
+                };
 
                 if (params.username || params.password) {
                     if (!params.username) {
@@ -157,21 +173,14 @@ var fs = require('fs');
                     } else {
                         password = params.password;
                     }
-                    options = {
-                        method: 'POST',
-                        uri: params.endpoint,
-                        auth: {
-                            username: params.username,
-                            password: params.password
-                        },
-                        formData: formData
-                    };
-                } else {
-                    options = {
-                        method: 'POST',
-                        uri: params.endpoint,
-                        formData: formData
-                    };
+                    options["auth"] = {
+                        username: params.username,
+                        password: params.password
+                    }
+                }
+
+                if (requestTimeout) {
+                    options["timeout"] = requestTimeout;
                 }
 
                 request(options, function (error, response, body) {
