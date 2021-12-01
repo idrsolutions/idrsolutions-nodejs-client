@@ -44,7 +44,7 @@ var fs = require('fs');
                     time += 500;
                     if (conversionTimeout && time > conversionTimeout) {
                         if (failure) {
-                            failure("Conversion timed out")
+                            failure({code: "ECONVERSIONTIMEOUT"});
                         }
                         clearInterval(poll);
                         return;
@@ -126,7 +126,7 @@ var fs = require('fs');
                 }
 
                 requestTimeout = params.requestTimeout;
-                convertTimeout = params.conversionTimeout;
+                conversionTimeout = params.conversionTimeout;
 
                 var formData = params.parameters || {};
 
