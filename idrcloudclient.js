@@ -14,31 +14,44 @@
  * limitations under the License.
  */
 
-var request = require('request');
+var http = require('http');
+var https = require('https');
+var FormData = require('form-data')
 var fs = require('fs');
 
 (function () {
+    var getProtocol = function  (endPoint) {
+        if (endPoint.toLowerCase().startsWith("https")) {
+            return https;
+        }
+
+        return http;
+    };
+
     var Converter = (function () {
 
         var doPoll = function (uuid, endpoint) {
             var req, retries = 0, time = 0;
+            var uri = endpoint + "?uuid=" + uuid;
+
+            var errorHandler = function(error) {
+                retries++;
+                if (retries > 3) {
+                    clearInterval(poll);
+                    if (failure) {
+                        failure(error);
+                    }
+                }
+            };
 
             var poll = setInterval(function () {
                 if (!req) {
+                    var options = {
+                        method: 'GET',
+                    };
+
                     if (username && password) {
-                        options = {
-                            method: 'GET',
-                            uri: endpoint + "?uuid=" + uuid,
-                            auth : {
-                                username : username,
-                                password : password
-                            }
-                        };
-                    } else {
-                        options = {
-                            method: 'GET',
-                            uri: endpoint + "?uuid=" + uuid,
-                        };
+                        options.Authorization = "Basic " + Buffer.from(username + ':' + password).toString('base64');
                     }
 
                     time += 500;
@@ -50,38 +63,44 @@ var fs = require('fs');
                         return;
                     }
 
-                    req = request(options, function (error, response, body) {
-                        if (!error && response.statusCode === 200) {
-                            var data = JSON.parse(body);
-                            if (data.state === "processed") {
-                                clearInterval(poll);
-                                if (success) {
-                                    success(data);
-                                }
-                            } else if (data.state === "error") {
-                                clearInterval(poll);
-                                if (failure) {
-                                    failure(new Error(JSON.stringify(data)));    
+                    req = getProtocol(endpoint).request(uri, options, function (response) {
+                        response.on('data', (body) => {
+                            if (response.statusCode === 200) {
+                                var data = JSON.parse(body.toString());
+                                if (data.state === "processed") {
+                                    clearInterval(poll);
+                                    if (success) {
+                                        success(data);
+                                    }
+                                } else if (data.state === "error") {
+                                    clearInterval(poll);
+                                    if (failure) {
+                                        failure(new Error(JSON.stringify(data)));
+                                    }
+                                } else {
+                                    if (progress) {
+                                        progress(data);
+                                    }
                                 }
                             } else {
-                                if (progress) {
-                                    progress(data);
+                                var failData = {
+                                    body: body.toString(),
+                                    statusCode: response.statusCode,
+                                    headers: response.headers,
+                                    request: {
+                                        method: response.req.method,
+                                        headers: response.req.getHeaders()
+                                    }
                                 }
+                                errorHandler(new Error(JSON.stringify(failData)));
                             }
-                        } else {
-                            retries++;
-                            if (retries > 3) {
-                                clearInterval(poll);
-                                if (!error) {
-                                    error = new Error(JSON.stringify(response.toJSON()));
-                                }
-                                if (failure) {
-                                    failure(error);
-                                }
-                            }
-                        }
+                            req = null;
+                        })
+                    }).on("error", (e) => {
+                        errorHandler(e);
                         req = null;
                     });
+                    req.end();
                 }
 
             }, 500);
@@ -128,37 +147,41 @@ var fs = require('fs');
                 requestTimeout = params.requestTimeout;
                 conversionTimeout = params.conversionTimeout;
 
-                var formData = params.parameters || {};
+                var rawForm = params.parameters || {};
 
-                if (typeof formData.input === 'undefined' || formData.input == null) {
+                if (typeof rawForm.input === 'undefined' || rawForm.input == null) {
                     throw Error("Parameter 'input' must be provided");
                 }
 
-                switch (formData.input) {
+                switch (rawForm.input) {
                     case this.UPLOAD:
-                        if (typeof formData.file === 'undefined' || formData.file == null) {
+                        if (typeof rawForm.file === 'undefined' || rawForm.file == null) {
                             throw Error("Parameter 'file' must be provided when using input=upload");
-                        } else if (formData.file instanceof Buffer) {
+                        } else if (rawForm.file instanceof Buffer) {
                             throw Error('Please use the bufferToFile method on your file parameter');
-                        } else if (typeof formData.file === 'string' || formData.file instanceof String) {
-                            formData.file = fs.createReadStream(formData.file);
-                        } else if (!(formData.file instanceof fs.ReadStream) && !formData.file['value'] && !formData.file['options']
-                                   && !formData.file.options['filename'] && !formData.file.options['contentType']) {
+                        } else if (typeof rawForm.file === 'string' || rawForm.file instanceof String) {
+                            rawForm.file = fs.createReadStream(rawForm.file);
+                        } else if (!(rawForm.file instanceof fs.ReadStream) && !rawForm.file['value'] && !rawForm.file['options']
+                                   && !rawForm.file.options['filename'] && !rawForm.file.options['contentType']) {
                             throw Error("Did not recognise type of 'file' parameter");
                         }
                         break;
 
                     case this.DOWNLOAD:
-                        if (typeof formData.url === 'undefined' || formData.url == null) {
+                        if (typeof rawForm.url === 'undefined' || rawForm.url == null) {
                             throw Error("Parameter 'url' must be provided when using input=download");
                         }
                         break;
                 }
 
+                var formData = new FormData();
+
+                Object.entries(rawForm).forEach(([key, value]) => formData.append(key, value));
+
                 var options = {
                     method: 'POST',
-                    uri: params.endpoint,
-                    formData: formData
+
+                    headers: formData.getHeaders()
                 };
 
                 if (params.username || params.password) {
@@ -173,29 +196,43 @@ var fs = require('fs');
                     } else {
                         password = params.password;
                     }
-                    options["auth"] = {
-                        username: params.username,
-                        password: params.password
-                    }
+                    options["Authorization"] = "Basic " + Buffer.from(params.username + ':' + params.password).toString('base64')
                 }
 
                 if (requestTimeout) {
                     options["timeout"] = requestTimeout;
                 }
 
-                request(options, function (error, response, body) {
-                    if (!error && response.statusCode === 200) {
-                        if (formData.callbackUrl && !(params.success || params.progress)) {
-                            //Exit without a failure
+                var theRequest = getProtocol(params.endpoint).request(params.endpoint, options, function (response) {
+                    response.on('data', (body) => {
+                        if (response.statusCode === 200) {
+                            if (rawForm.callbackUrl && !(params.success || params.progress)) {
+                                //Exit without a failure
+                            } else {
+                                doPoll(JSON.parse(body.toString()).uuid, params.endpoint);
+                            }
                         } else {
-                            doPoll(JSON.parse(body).uuid, params.endpoint);
+                            if (failure) {
+                                var failData = {
+                                    body: body.toString(),
+                                    statusCode: response.statusCode,
+                                    headers: response.headers,
+                                    request: {
+                                        method: response.req.method,
+                                        headers: response.req.getHeaders()
+                                    }
+                                }
+                                failure(new Error(JSON.stringify(failData)));
+                            }
                         }
-                    } else {
-                        if (failure) {
-                            failure(error || new Error(JSON.stringify(response.toJSON())));
-                        }
+                    });
+                }).on('error', (e) => {
+                    if (failure) {
+                        failure(e);
                     }
                 });
+
+                formData.pipe(theRequest);
             }
         };
     })();
