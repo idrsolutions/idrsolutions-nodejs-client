@@ -16,7 +16,7 @@
 
 var http = require('http');
 var https = require('https');
-var FormData = require('form-data')
+var FormData = require('form-data');
 var fs = require('fs');
 
 (function () {
