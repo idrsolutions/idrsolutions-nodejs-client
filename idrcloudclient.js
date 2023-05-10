@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-var http = require('http');
-var https = require('https');
-var FormData = require('form-data');
-var fs = require('fs');
+import http from "http";
+import https from "https";
+import FormData from "form-data";
+import fs from "fs";
 
-(function () {
-    var getProtocol = function  (endPoint) {
+(() => {
+    const getProtocol = (endPoint) => {
         if (endPoint.toLowerCase().startsWith("https")) {
             return https;
         }
@@ -28,13 +28,12 @@ var fs = require('fs');
         return http;
     };
 
-    var Converter = (function () {
+    const Converter = (() => {
+        const doPoll = (uuid, endpoint) => {
+            let req, retries = 0, time = 0;
+            const uri = `${endpoint}?uuid=${uuid}`;
 
-        var doPoll = function (uuid, endpoint) {
-            var req, retries = 0, time = 0;
-            var uri = endpoint + "?uuid=" + uuid;
-
-            var errorHandler = function(error) {
+            const errorHandler = (error) => {
                 retries++;
                 if (retries > 3) {
                     clearInterval(poll);
@@ -44,14 +43,14 @@ var fs = require('fs');
                 }
             };
 
-            var poll = setInterval(function () {
+            var poll = setInterval(() => {
                 if (!req) {
-                    var options = {
-                        method: 'GET',
+                    const options = {
+                        method: "GET",
                     };
 
                     if (username && password) {
-                        options.Authorization = "Basic " + Buffer.from(username + ':' + password).toString('base64');
+                        options.Authorization = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
                     }
 
                     time += 500;
@@ -63,10 +62,10 @@ var fs = require('fs');
                         return;
                     }
 
-                    req = getProtocol(endpoint).request(uri, options, function (response) {
-                        response.on('data', (body) => {
+                    req = getProtocol(endpoint).request(uri, options, (response) => {
+                        response.on("data", (body) => {
                             if (response.statusCode === 200) {
-                                var data = JSON.parse(body.toString());
+                                const data = JSON.parse(body.toString());
                                 if (data.state === "processed") {
                                     clearInterval(poll);
                                     if (success) {
@@ -83,56 +82,55 @@ var fs = require('fs');
                                     }
                                 }
                             } else {
-                                var failData = {
+                                const failData = {
                                     body: body.toString(),
                                     statusCode: response.statusCode,
                                     headers: response.headers,
                                     request: {
                                         method: response.req.method,
-                                        headers: response.req.getHeaders()
-                                    }
-                                }
+                                        headers: response.req.getHeaders(),
+                                    },
+                                };
                                 errorHandler(new Error(JSON.stringify(failData)));
                             }
                             req = null;
-                        })
+                        });
                     }).on("error", (e) => {
                         errorHandler(e);
                         req = null;
                     });
                     req.end();
                 }
-
             }, 500);
         };
 
         var progress, success, failure, username, password, requestTimeout, conversionTimeout;
 
         return {
-            UPLOAD: 'upload',
-            DOWNLOAD: 'download',
-            JPEDAL: 'jpedal',
-            BUILDVU: 'buildvu',
-            FORMVU: 'formvu',
-            bufferToFile: function (file, filename) {
-                var returnFile;
+            UPLOAD: "upload",
+            DOWNLOAD: "download",
+            JPEDAL: "jpedal",
+            BUILDVU: "buildvu",
+            FORMVU: "formvu",
+            bufferToFile(file, filename) {
+                let returnFile;
                 if (file instanceof Buffer) {
                     if (!filename) {
-                        throw Error('Missing filename');
+                        throw Error("Missing filename");
                     }
                     returnFile = {
                         value: file,
                         options: {
-                            filename: filename,
-                            contentType: 'application/pdf'
-                        }
+                            filename,
+                            contentType: "application/pdf",
+                        },
                     };
                 }
                 return returnFile;
             },
-            convert: function (params) {
+            convert(params) {
                 if (!params.endpoint) {
-                    throw Error('Missing endpoint');
+                    throw Error("Missing endpoint");
                 }
                 if (params.success && typeof params.success === "function") {
                     success = params.success;
@@ -147,64 +145,64 @@ var fs = require('fs');
                 requestTimeout = params.requestTimeout;
                 conversionTimeout = params.conversionTimeout;
 
-                var rawForm = params.parameters || {};
+                const rawForm = params.parameters || {};
 
-                if (typeof rawForm.input === 'undefined' || rawForm.input == null) {
+                if (typeof rawForm.input === "undefined" || rawForm.input == null) {
                     throw Error("Parameter 'input' must be provided");
                 }
 
                 switch (rawForm.input) {
                     case this.UPLOAD:
-                        if (typeof rawForm.file === 'undefined' || rawForm.file == null) {
+                        if (typeof rawForm.file === "undefined" || rawForm.file == null) {
                             throw Error("Parameter 'file' must be provided when using input=upload");
                         } else if (rawForm.file instanceof Buffer) {
-                            throw Error('Please use the bufferToFile method on your file parameter');
-                        } else if (typeof rawForm.file === 'string' || rawForm.file instanceof String) {
+                            throw Error("Please use the bufferToFile method on your file parameter");
+                        } else if (typeof rawForm.file === "string" || rawForm.file instanceof String) {
                             rawForm.file = fs.createReadStream(rawForm.file);
-                        } else if (!(rawForm.file instanceof fs.ReadStream) && !rawForm.file['value'] && !rawForm.file['options']
-                                   && !rawForm.file.options['filename'] && !rawForm.file.options['contentType']) {
+                        } else if (!(rawForm.file instanceof fs.ReadStream) && !rawForm.file["value"] && !rawForm.file["options"]
+                                   && !rawForm.file.options["filename"] && !rawForm.file.options["contentType"]) {
                             throw Error("Did not recognise type of 'file' parameter");
                         }
                         break;
 
                     case this.DOWNLOAD:
-                        if (typeof rawForm.url === 'undefined' || rawForm.url == null) {
+                        if (typeof rawForm.url === "undefined" || rawForm.url == null) {
                             throw Error("Parameter 'url' must be provided when using input=download");
                         }
                         break;
                 }
 
-                var formData = new FormData();
+                const formData = new FormData();
 
                 Object.entries(rawForm).forEach(([key, value]) => formData.append(key, value));
 
-                var options = {
-                    method: 'POST',
+                const options = {
+                    method: "POST",
 
-                    headers: formData.getHeaders()
+                    headers: formData.getHeaders(),
                 };
 
                 if (params.username || params.password) {
                     if (!params.username) {
-                        throw Error('Password provided but username is missing');
+                        throw Error("Password provided but username is missing");
                     } else {
                         username = params.username;
                     }
 
                     if (!params.password) {
-                        throw Error('Username provided but password is missing');
+                        throw Error("Username provided but password is missing");
                     } else {
                         password = params.password;
                     }
-                    options["Authorization"] = "Basic " + Buffer.from(params.username + ':' + params.password).toString('base64')
+                    options["Authorization"] = `Basic ${Buffer.from(`${params.username}:${params.password}`).toString("base64")}`;
                 }
 
                 if (requestTimeout) {
                     options["timeout"] = requestTimeout;
                 }
 
-                var theRequest = getProtocol(params.endpoint).request(params.endpoint, options, function (response) {
-                    response.on('data', (body) => {
+                const theRequest = getProtocol(params.endpoint).request(params.endpoint, options, (response) => {
+                    response.on("data", (body) => {
                         if (response.statusCode === 200) {
                             if (rawForm.callbackUrl && !(params.success || params.progress)) {
                                 //Exit without a failure
@@ -213,36 +211,33 @@ var fs = require('fs');
                             }
                         } else {
                             if (failure) {
-                                var failData = {
+                                const failData = {
                                     body: body.toString(),
                                     statusCode: response.statusCode,
                                     headers: response.headers,
                                     request: {
                                         method: response.req.method,
-                                        headers: response.req.getHeaders()
-                                    }
-                                }
+                                        headers: response.req.getHeaders(),
+                                    },
+                                };
                                 failure(new Error(JSON.stringify(failData)));
                             }
                         }
                     });
-                }).on('error', (e) => {
+                }).on("error", (e) => {
                     if (failure) {
                         failure(e);
                     }
                 });
 
                 formData.pipe(theRequest);
-            }
+            },
         };
     })();
 
-
     if (typeof define === "function" && define.amd) {
         //noinspection JSUnresolvedFunction
-        define(['converter'], [], function () {
-            return Converter;
-        });
+        define(["converter"], [], () => Converter);
     } else if (typeof module === "object" && module.exports) {
         module.exports = Converter;
     }
