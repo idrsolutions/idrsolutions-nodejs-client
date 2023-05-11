@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import http from "http";
-import https from "https";
-import FormData from "form-data";
-import fs from "fs";
+const http = require("http");
+const https = require("https");
+const FormData = require("form-data");
+const fs = require("fs");
 
 (() => {
     const getProtocol = (endPoint) => {
