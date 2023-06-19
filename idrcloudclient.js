@@ -148,26 +148,26 @@ const fs = require('fs');
                 const rawForm = params.parameters || {};
 
                 if (typeof rawForm.input === 'undefined' || rawForm.input == null) {
-                    throw Error('Parameter 'input' must be provided');
+                    throw Error("Parameter 'input' must be provided");
                 }
 
                 switch (rawForm.input) {
                     case this.UPLOAD:
                         if (typeof rawForm.file === 'undefined' || rawForm.file == null) {
-                            throw Error('Parameter 'file' must be provided when using input=upload');
+                            throw Error("Parameter 'file' must be provided when using input=upload");
                         } else if (rawForm.file instanceof Buffer) {
                             throw Error('Please use the bufferToFile method on your file parameter');
                         } else if (typeof rawForm.file === 'string' || rawForm.file instanceof String) {
                             rawForm.file = fs.createReadStream(rawForm.file);
                         } else if (!(rawForm.file instanceof fs.ReadStream) && !rawForm.file['value'] && !rawForm.file['options']
                                    && !rawForm.file.options['filename'] && !rawForm.file.options['contentType']) {
-                            throw Error('Did not recognise type of 'file' parameter');
+                            throw Error("Did not recognise type of 'file' parameter");
                         }
                         break;
 
                     case this.DOWNLOAD:
                         if (typeof rawForm.url === 'undefined' || rawForm.url == null) {
-                            throw Error('Parameter 'url' must be provided when using input=download');
+                            throw Error("Parameter 'url' must be provided when using input=download");
                         }
                         break;
                 }
