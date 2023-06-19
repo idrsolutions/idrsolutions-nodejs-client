@@ -230,6 +230,8 @@ const fs = require('fs');
                     if (failure) {
                         failure(e);
                     }
+                }).on('timeout', () => {
+                    theRequest.destroy();
                 });
 
                 formData.pipe(theRequest);
