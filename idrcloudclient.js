@@ -98,6 +98,8 @@ const fs = require('fs');
                     }).on('error', (e) => {
                         errorHandler(e);
                         req = null;
+                    }).on('timeout', () => {
+                        req.destroy();
                     });
                     req.end();
                 }
@@ -228,6 +230,8 @@ const fs = require('fs');
                     if (failure) {
                         failure(e);
                     }
+                }).on('timeout', () => {
+                    theRequest.destroy();
                 });
 
                 formData.pipe(theRequest);
