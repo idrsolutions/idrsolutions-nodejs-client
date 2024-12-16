@@ -18,6 +18,16 @@ const FormData = require('form-data');
 const fs = require('fs');
 
 (() => {
+    class IdrFile {
+        buffer;
+        metadata;
+
+        constructor(buffer, metadata) {
+            this.buffer = buffer;
+            this.metadata = metadata;
+        }
+    }
+
     const getProtocol = (endPoint) => {
         if (endPoint.toLowerCase().startsWith('https')) {
             return https;
@@ -114,19 +124,14 @@ const fs = require('fs');
             FORMVU: 'formvu',
             bufferToFile(file, filename) {
                 let returnFile;
-                if (file instanceof Buffer) {
-                    if (!filename) {
-                        throw Error('Missing filename');
-                    }
-                    returnFile = {
-                        value: file,
-                        options: {
-                            filename,
-                            contentType: 'application/pdf',
-                        },
-                    };
-                }
-                return returnFile;
+                if (!(file instanceof Buffer)) return undefined;
+
+                if (!filename) throw Error('Missing filename');
+
+                return new IdrFile(file, {
+                    filename,
+                    contentType: 'application/pdf'
+                });
             },
             convert(params) {
                 if (!params.endpoint) {
@@ -159,8 +164,7 @@ const fs = require('fs');
                             throw Error('Please use the bufferToFile method on your file parameter');
                         } else if (typeof rawForm.file === 'string' || rawForm.file instanceof String) {
                             rawForm.file = fs.createReadStream(rawForm.file);
-                        } else if (!(rawForm.file instanceof fs.ReadStream) && !rawForm.file['value'] && !rawForm.file['options']
-                                   && !rawForm.file.options['filename'] && !rawForm.file.options['contentType']) {
+                        } else if (!(rawForm.file instanceof IdrFile)) {
                             throw Error("Did not recognise type of 'file' parameter");
                         }
                         break;
@@ -174,7 +178,13 @@ const fs = require('fs');
 
                 const formData = new FormData();
 
-                Object.entries(rawForm).forEach(([key, value]) => formData.append(key, value));
+                Object.entries(rawForm).forEach(([key, value]) => {
+                    if (value instanceof IdrFile) {
+                        formData.append(key, value.buffer, value.metadata)
+                    } else {
+                        formData.append(key, value)
+                    }
+                });
 
                 const options = {
                     method: 'POST',
